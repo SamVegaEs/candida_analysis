@@ -420,7 +420,8 @@ samtools index <$File> -o $File
 done
 ```
 
-In order to extract the reads from the bam files we will use samtools:
+In order to extract the reads from the bam files we will use samtools
+Example:
 
 ```bash
 #Run at cd analysis/genome_alignment/minimap/c.albicans/vs_ccXX. The -h option was added, because when sorting a message error appeared saying that the header was missing.
