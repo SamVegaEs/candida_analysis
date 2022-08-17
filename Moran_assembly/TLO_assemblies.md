@@ -1,10 +1,7 @@
 Project started for Minion assembly for Candida tlo project (Moran collaboration). 
 
-
-#Identify sequencing coverage
-
+Identify sequencing coverage
 Allow perl to read the content of the programs: sudo chmod a=rx /git_repos/tools/seq_tools/dna_qc
-
 For Minion data:
 
 
@@ -17,7 +14,6 @@ OutDir=$(dirname $RawData)
 mkdir -p $OutDir
 qsub $ProgDir/sub_count_nuc.sh $GenomeSz $RawData $OutDir
 done
-
 
   for StrainDir in $(ls -d projects/candida_tlo/raw_data_minion/*/*); do
     Strain=$(basename $StrainDir)
@@ -39,7 +35,6 @@ mkdir -p $OutDir
 sbatch $ProgDir/sub_count_nuc_slurm_2.sh $GenomeSz $RawData $OutDir
 done
 
-
   for StrainDir in $(ls -d projects/candida_tlo/raw_data_minion/*/*); do
     Strain=$(basename $StrainDir)
     printf "$Strain\t"
@@ -49,9 +44,6 @@ done
     done | grep -v '.txt' | awk '{ SUM += $1} END { print SUM }'
   done
 ```
-
-
-
 
 ```
 Coverage.
@@ -90,7 +82,9 @@ sbatch $ProgDir/sub_canu_correction_slurm_2.sh $TrimReads 14m $Strain $OutDir
 done
 ```
 
-#Assembbly using SMARTdenovo
+ASSEMBLY OF GENOMES USING SMART-DE-NOVO
+
+  1. Smart-de-novo
 
 ```bash
 for CorrectedReads in $(ls assembly/canu-1.8/*/*/*.trimmedReads.fasta.gz); do
@@ -103,7 +97,7 @@ sbatch $ProgDir/sub_SMARTdenovo_slurm.sh $CorrectedReads $Prefix $OutDir
 done
 ```
 
-Quast and busco were run to assess the effects of racon on assembly quality:
+  2. Quast and busco were run to assess the effects of racon on assembly quality:
 
 ```bash
 ProgDir=~/git_repos/tools/seq_tools/assemblers/assembly_qc/quast
@@ -147,7 +141,7 @@ short_summary.specific.saccharomycetes_odb10.cc12_smartdenovo.dmo.lay.txt      1
 short_summary.specific.saccharomycetes_odb10.cc16_smartdenovo.dmo.lay.txt      1167     15      579     391     2137
 ```
 
-#Error correction using racon:
+  3. Error correction using racon:
 
 ```bash
 for Assembly in $(ls assembly/SMARTdenovo/*/*/*.dmo.lay.utg); do
@@ -255,9 +249,7 @@ short_summary.specific.saccharomycetes_odb10.cc16_smartdenovo_racon_round_9.txt 
 short_summary.specific.saccharomycetes_odb10.cc16_smartdenovo_racon_round_10.txt        1479     21      453     205     2137
 ```
 
-codes to rewrite:
-
-#Remove mitochondrial DNA
+  4. Remove mitochondrial DNA
 
 Create the database for Candida mitochondrial DNA.
 
@@ -308,7 +300,7 @@ cc10    16      1
 cc12    15      1
 cc16    17      3
 ```
-#Repeat Masking.
+  5. Repeat Masking.
 
 ```bash
  # for Assembly in $(ls assembly/SMARTdenovo/*/*/pilon/pilon_min_500bp_renamed.fasta); do
@@ -338,14 +330,9 @@ The TransposonPSI masked bases is normally used to mask additional bases from th
   done
 ```
 
+ALIGNMENT OF ASSEMBLIES 
 
-
-#Alignment of Assemblies (hardmasked)
-
-
-Promer alignment of Assemblies.
-
-Alignment of our assemblies against the reference A22 C. albicans
+  1. Alignment of Assemblies (hardmasked) with Promer against the reference A22 C. albicans
 
 ```bash
 Reference=$(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fa)
@@ -359,23 +346,9 @@ ProgDir=git_repos/tools/seq_tools/genome_alignment/MUMmer
 sbatch $ProgDir/sub_nucmer_slurm.sh $Reference $Query $Prefix $OutDir
 done
 ```
+(For circos plots generation check specific folder)
 
-Generating circos plots with Mummer alignment.
-
-```bash
-ProgDir=/~/git_repos/scripts/circos_plots/genome_alignment/C.albicans/TLO_project/vs_A22/cc03
-circos -conf $ProgDir/A22_vs_cc03_circos.conf -outputdir $OutDir
-mv $OutDir/circos.png $OutDir/589_vs_Y-11545_v2_circos.png
-mv $OutDir/circos.svg $OutDir/589_vs_Y-11545_v2_circos.svg
-ls $PWD/$OutDir/589_vs_Y-11545_v2_circos.png
-```
-
-#Alignment of Assemblies (sofmasked)
-
-
-Promer alignment of Assemblies.
-
-Alignment of our assemblies against the reference A22 C. albicans
+  2. Promer alignment of Assemblies (sofmasked) against the reference A22 C. albicans
 
 ```bash
 Reference=$(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta)
@@ -390,12 +363,9 @@ sbatch $ProgDir/sub_nucmer_slurm.sh $Reference $Query $Prefix $OutDir
 done
 ```
 
-
-
-#Read coverage. Unmasked assembly.
+  3. Read coverage (Unmasked assembly) 
 
 Coverage of Nanopore reads over Assembly. For the alignment of ONT reads versus Nanopore assembly use the program minimap:
-
 
 ```bash
 for Assembly in $(ls repeat_masked/*/*/filtered_contigs/*_contigs_unmasked.fa); do
@@ -410,7 +380,7 @@ sbatch $ProgDir/minimap/slurm_minimap2.sh $Reference $Reads $OutDir
 done
 ```
 
-To generate the coverage plots with circos we need to generate the .tsv files
+Generation of .tsv files for visualization in IGV and circos.
 
 ```bash
 for Sam in $(ls analysis/genome_alignment/minimap/*/vs_*/*_aligned_sorted.bam); do
@@ -440,9 +410,7 @@ done > analysis/genome_alignment/minimap/read_coverage.txt
   done
 ```
 
-
 To visualise in IGV the new bam files we need the index of that bam file. Minimap did not generate the index files of the alignments, so I will try to index them using samtools.
-
 
 ```bash
 for File in $(ls analysis/genome_alignment/minimap/*/*/*.fasta_aligned_sorted.bam); do
