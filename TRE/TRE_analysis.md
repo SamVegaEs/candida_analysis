@@ -98,6 +98,8 @@ First all A22_A and then all A22_B
 
 3.2.3 Run gatk from scripts. 
 
+3.2.4 Run picard from scripts.
+
 3.3 SNPs filtering
 
 Run with the script in sbtacth_run. After vcf is generated filter SNPs:
