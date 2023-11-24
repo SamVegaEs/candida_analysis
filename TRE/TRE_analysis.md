@@ -92,40 +92,16 @@ Done as: AB55 vs C3, C5 and F2.
 
 First all A22_A and then all A22_B
 
-Prepare genome reference indexes required by GATK if needed:
+Run bwa from scripts. 
 
-```bash
-for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
-OutName=$(echo $Reference | sed 's/.fasta/.dict/g')
-OutDir=$(dirname $Reference)
-ProgDir=~/local/bin/picard-2.27.3
-java -jar $ProgDir/picard.jar CreateSequenceDictionary R=$Reference O=$OutName
-samtools faidx $Reference
-done
-```
+Run samtools from scripts. Modify them within the script.
+
+Run gatk from scripts. 
+
 Run with the script in sbtacth_run. After vcf is generated filter SNPs:
 
 --> SC5314_A vs C3
 
-```bash
-for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
-for StrainPath in $(ls -d raw_dna/novogene/*/*/*/01.RawData/C3); do
-Strain=$(echo $StrainPath | rev | cut -f1 -d '/' | rev)
-Organism=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-Ref=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-F_Read=$(ls $StrainPath/*.fq.gz)
-R_Read=$(ls $StrainPath/*.fq.gz)
-echo $F_Read
-echo $R_Read
-echo $Ref
-Prefix="${Organism}_vs_${Strain}"
-echo $Prefix
-OutDir=analysis/genome_alignment/bwa/$Organism/$Strain/vs_${Ref}
-ProgDir=~/git_repos/tools/seq_tools/genome_alignment/bwa
-sbatch $ProgDir/sub_bwa_slurm.sh $Prefix $Reference $F_Read $R_Read $OutDir
-done
-done
-```
 ```bash
 Vcf=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C3/bwagatk_C3.vcf)
 vcftools=/home/sv264/local/bin/vcftools_0.1.13/bin
@@ -245,25 +221,6 @@ WARNING_TRANSCRIPT_NO_STOP_CODON        206
 --> SC5314_A vs C5
 
 ```bash
-for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
-for StrainPath in $(ls -d raw_dna/novogene/*/*/*/01.RawData/C5); do
-Strain=$(echo $StrainPath | rev | cut -f1 -d '/' | rev)
-Organism=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-Ref=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-F_Read=$(ls $StrainPath/*.fq.gz)
-R_Read=$(ls $StrainPath/*.fq.gz)
-echo $F_Read
-echo $R_Read
-echo $Ref
-Prefix="${Organism}_vs_${Strain}"
-echo $Prefix
-OutDir=analysis/genome_alignment/bwa/$Organism/$Strain/vs_${Ref}
-ProgDir=~/git_repos/tools/seq_tools/genome_alignment/bwa
-sbatch $ProgDir/sub_bwa_slurm.sh $Prefix $Reference $F_Read $R_Read $OutDir
-done
-done
-```
-```bash
 Vcf=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C5/bwagatk_C5.vcf)
 vcftools=/home/sv264/local/bin/vcftools_0.1.13/bin
 vcflib=/home/sv264/miniconda3/pkgs/vcflib-1.0.0_rc2-h56106d0_2/bin
@@ -379,25 +336,6 @@ WARNING_TRANSCRIPT_NO_STOP_CODON        187
 ```
 --> SC5314_A vs F2
 
-```bash
-for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
-for StrainPath in $(ls -d raw_dna/novogene/*/*/*/01.RawData/F2); do
-Strain=$(echo $StrainPath | rev | cut -f1 -d '/' | rev)
-Organism=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-Ref=$(echo $Reference | rev | cut -f2 -d '/' | rev)
-F_Read=$(ls $StrainPath/*.fq.gz)
-R_Read=$(ls $StrainPath/*.fq.gz)
-echo $F_Read
-echo $R_Read
-echo $Ref
-Prefix="${Organism}_vs_${Strain}"
-echo $Prefix
-OutDir=analysis/genome_alignment/bwa/$Organism/$Strain/vs_${Ref}
-ProgDir=~/git_repos/tools/seq_tools/genome_alignment/bwa
-sbatch $ProgDir/sub_bwa_slurm.sh $Prefix $Reference $F_Read $R_Read $OutDir
-done
-done
-```
 ```bash
 Vcf=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_F2/bwagatk_F2.vcf)
 vcftools=/home/sv264/local/bin/vcftools_0.1.13/bin
