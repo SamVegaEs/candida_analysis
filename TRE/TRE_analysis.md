@@ -105,6 +105,143 @@ done
 ```
 Run with the script in sbtacth_run. After vcf is generated filter SNPs:
 
+--> SC5314_A vs C3
+
+```bash
+for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
+for StrainPath in $(ls -d raw_dna/novogene/*/*/*/01.RawData/C3); do
+Strain=$(echo $StrainPath | rev | cut -f1 -d '/' | rev)
+Organism=$(echo $Reference | rev | cut -f2 -d '/' | rev)
+Ref=$(echo $Reference | rev | cut -f2 -d '/' | rev)
+F_Read=$(ls $StrainPath/*.fq.gz)
+R_Read=$(ls $StrainPath/*.fq.gz)
+echo $F_Read
+echo $R_Read
+echo $Ref
+Prefix="${Organism}_vs_${Strain}"
+echo $Prefix
+OutDir=analysis/genome_alignment/bwa/$Organism/$Strain/vs_${Ref}
+ProgDir=~/git_repos/tools/seq_tools/genome_alignment/bwa
+sbatch $ProgDir/sub_bwa_slurm.sh $Prefix $Reference $F_Read $R_Read $OutDir
+done
+done
+```
+```bash
+Vcf=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C3/bwagatk_C3.vcf)
+vcftools=/home/sv264/local/bin/vcftools_0.1.13/bin
+vcflib=/home/sv264/miniconda3/pkgs/vcflib-1.0.0_rc2-h56106d0_2/bin
+mq=40
+qual=30
+dp=10
+gq=30
+na=1.00
+removeindel=N
+echo "count prefilter"
+cat ${Vcf} | grep -v '#' | wc -l
+
+export LD_LIBRARY_PATH=/home/sv264/miniconda3/pkgs/bzip2-1.0.8-h7b6447c_0/lib
+export LD_LIBRARY_PATH=/home/sv264/miniconda3/lib
+export PYTHONPATH=/usr/lib64/python2.7
+$vcflib/vcffilter -f "QUAL > $qual & MQ > $mq" $Vcf \
+| $vcflib/vcffilter -g "DP > $dp & GQ > $gq" > ${Vcf%.vcf}_qfiltered.vcf
+
+echo "count qfilter"
+cat ${Vcf%.vcf}_qfiltered.vcf | grep -v '#' | wc -l
+$vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --remove-indels --recode --out ${Vcf%.vcf}_qfiltered_presence
+$vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --keep-only-indels --recode --out ${Vcf%.vcf}_indels_qfiltered_presence
+```
+```
+count prefilter
+92679
+
+count qfilter
+90699
+
+After filtering, kept 1 out of 1 Individuals
+Outputting VCF file...
+After filtering, kept 76957 out of a possible 90699 Sites
+Run Time = 1.00 seconds
+
+After filtering, kept 1 out of 1 Individuals
+Outputting VCF file...
+After filtering, kept 13692 out of a possible 90699 Sites
+Run Time = 0.00 seconds
+```
+Collect VCF stats
+General VCF stats (remember that vcftools needs to have the PERL library exported)
+
+```bash
+  Isolate="C3"
+  VcfTools=/home/sv264/local/bin/vcftools_0.1.13/perl
+  export PERL5LIB="$VcfTools:$PERL5LIB"
+  VcfFiltered=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C3/*_qfiltered_presence*.vcf | grep -v 'indels')
+  Stats=$(echo $VcfFiltered | sed 's/.vcf/.stat/g')
+  perl $VcfTools/vcf-stats $VcfFiltered > $Stats
+  VcfFiltered=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C3/*_qfiltered_presence*.vcf | grep 'indels')
+  Stats=$(echo $VcfFiltered | sed 's/.vcf/_indels.stat/g')
+  perl $VcfTools/vcf-stats $VcfFiltered > $Stats
+```
+Calculate the index for percentage of shared SNP alleles between the individuals.
+
+```bash
+Isolate="C3"
+  for Vcf in $(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_C3/*_qfiltered_presence*.vcf | grep -v 'indels'); do
+      ProgDir=~/git_repos/scripts/popgen/snp
+      python2.7 $ProgDir/similarity_percentage.py $Vcf
+  done
+```
+
+Annotate VCF files
+
+```bash
+Organism="Calbicans"
+Isolate="SC5314"
+Strain="C3"
+DbName="Calbicans" 
+CurDir=/home/sv264
+cd $CurDir
+  for Vcf in $(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_${Strain}/*_qfiltered_presence.recode.vcf | grep -v 'indels'); do
+    echo $Vcf
+    filename=$(basename "$Vcf")
+    Prefix=${filename%.vcf}
+    OutDir=$(dirname $Vcf)
+    SnpEff=/home/sv264/local/bin/snpEff
+    java -Xmx4g -jar $SnpEff/snpEff.jar -v -ud 0 ${DbName} $Vcf > $OutDir/"$Prefix"_annotated.vcf
+    mv snpEff_genes.txt $OutDir/snpEff_genes_"$Prefix".txt
+    mv snpEff_summary.html $OutDir/snpEff_summary_"$Prefix".html
+    # mv 414_v2_contigs_unmasked_filtered* $OutDir/.
+    #-
+    #Create subsamples of SNPs containing those in a given category
+    #-
+    #genic (includes 5', 3' UTRs)
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant') || (ANN[0].EFFECT has 'synonymous_variant') || (ANN[0].EFFECT has 'intron_variant') || (ANN[*].EFFECT has 'splice_region_variant') || (ANN[*].EFFECT has '5_prime_UTR_variant') || (ANN[*].EFFECT has '3_prime_UTR_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_gene.vcf
+    #coding
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant') || (ANN[0].EFFECT has 'synonymous_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_coding.vcf
+    #non-synonymous
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_nonsyn.vcf
+    #synonymous
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'synonymous_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_syn.vcf
+    #Four-fold degenrate sites (output file suffix: 4fd)
+    ProgDir=/home/sv264/local/bin/popgen/summary_stats
+    python $ProgDir/parse_snpeff_synonymous.py $OutDir/"$Prefix"_syn.vcf
+    AllSnps=$(cat $OutDir/"$Prefix"_annotated.vcf | grep -v '#' | wc -l)
+    GeneSnps=$(cat $OutDir/"$Prefix"_gene.vcf | grep -v '#' | wc -l)
+    CdsSnps=$(cat $OutDir/"$Prefix"_coding.vcf | grep -v '#' | wc -l)
+    NonsynSnps=$(cat $OutDir/"$Prefix"_nonsyn.vcf | grep -v '#' | wc -l)
+    SynSnps=$(cat $OutDir/"$Prefix"_syn.vcf | grep -v '#' | wc -l)
+    printf "$filename\t$AllSnps\t$GeneSnps\t$CdsSnps\t$NonsynSnps\t$SynSnps\n"
+done
+```
+```bash
+bwagatk_C3_qfiltered_presence.recode.vcf        76957   36462   35967   13280   22687
+
+Warnings detected:
+WARNING_TRANSCRIPT_INCOMPLETE   118
+WARNING_TRANSCRIPT_MULTIPLE_STOP_CODONS 306
+WARNING_TRANSCRIPT_NO_START_CODON       56
+WARNING_TRANSCRIPT_NO_STOP_CODON        206
+```
+
 --> SC5314_A vs C5
 
 ```bash
@@ -148,8 +285,6 @@ $vcflib/vcffilter -f "QUAL > $qual & MQ > $mq" $Vcf \
 echo "count qfilter"
 cat ${Vcf%.vcf}_qfiltered.vcf | grep -v '#' | wc -l
 $vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --remove-indels --recode --out ${Vcf%.vcf}_qfiltered_presence
-
-
 $vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --keep-only-indels --recode --out ${Vcf%.vcf}_indels_qfiltered_presence
 ```
 ```
@@ -163,7 +298,6 @@ After filtering, kept 1 out of 1 Individuals
 Outputting VCF file...
 After filtering, kept 68344 out of a possible 81003 Sites
 Run Time = 2.00 seconds
-
 
 After filtering, kept 1 out of 1 Individuals
 Outputting VCF file...
@@ -243,6 +377,142 @@ WARNING_TRANSCRIPT_MULTIPLE_STOP_CODONS 283
 WARNING_TRANSCRIPT_NO_START_CODON       42
 WARNING_TRANSCRIPT_NO_STOP_CODON        187
 ```
+--> SC5314_A vs F2
+
+```bash
+for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
+for StrainPath in $(ls -d raw_dna/novogene/*/*/*/01.RawData/F2); do
+Strain=$(echo $StrainPath | rev | cut -f1 -d '/' | rev)
+Organism=$(echo $Reference | rev | cut -f2 -d '/' | rev)
+Ref=$(echo $Reference | rev | cut -f2 -d '/' | rev)
+F_Read=$(ls $StrainPath/*.fq.gz)
+R_Read=$(ls $StrainPath/*.fq.gz)
+echo $F_Read
+echo $R_Read
+echo $Ref
+Prefix="${Organism}_vs_${Strain}"
+echo $Prefix
+OutDir=analysis/genome_alignment/bwa/$Organism/$Strain/vs_${Ref}
+ProgDir=~/git_repos/tools/seq_tools/genome_alignment/bwa
+sbatch $ProgDir/sub_bwa_slurm.sh $Prefix $Reference $F_Read $R_Read $OutDir
+done
+done
+```
+```bash
+Vcf=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_F2/bwagatk_F2.vcf)
+vcftools=/home/sv264/local/bin/vcftools_0.1.13/bin
+vcflib=/home/sv264/miniconda3/pkgs/vcflib-1.0.0_rc2-h56106d0_2/bin
+mq=40
+qual=30
+dp=10
+gq=30
+na=1.00
+removeindel=N
+echo "count prefilter"
+cat ${Vcf} | grep -v '#' | wc -l
+
+export LD_LIBRARY_PATH=/home/sv264/miniconda3/pkgs/bzip2-1.0.8-h7b6447c_0/lib
+export LD_LIBRARY_PATH=/home/sv264/miniconda3/lib
+export PYTHONPATH=/usr/lib64/python2.7
+$vcflib/vcffilter -f "QUAL > $qual & MQ > $mq" $Vcf \
+| $vcflib/vcffilter -g "DP > $dp & GQ > $gq" > ${Vcf%.vcf}_qfiltered.vcf
+
+echo "count qfilter"
+cat ${Vcf%.vcf}_qfiltered.vcf | grep -v '#' | wc -l
+$vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --remove-indels --recode --out ${Vcf%.vcf}_qfiltered_presence
+$vcftools/vcftools --vcf ${Vcf%.vcf}_qfiltered.vcf --max-missing $na --keep-only-indels --recode --out ${Vcf%.vcf}_indels_qfiltered_presence
+```
+```
+count prefilter
+92473
+
+count qfilter
+90463
+
+After filtering, kept 1 out of 1 Individuals
+Outputting VCF file...
+After filtering, kept 76679 out of a possible 90463 Sites
+Run Time = 2.00 seconds
+
+After filtering, kept 1 out of 1 Individuals
+Outputting VCF file...
+After filtering, kept 13642 out of a possible 90463 Sites
+Run Time = 1.00 seconds 
+```
+Collect VCF stats
+General VCF stats (remember that vcftools needs to have the PERL library exported)
+
+```bash
+  Isolate="F2"
+  VcfTools=/home/sv264/local/bin/vcftools_0.1.13/perl
+  export PERL5LIB="$VcfTools:$PERL5LIB"
+  VcfFiltered=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_F2/*_qfiltered_presence*.vcf | grep -v 'indels')
+  Stats=$(echo $VcfFiltered | sed 's/.vcf/.stat/g')
+  perl $VcfTools/vcf-stats $VcfFiltered > $Stats
+  VcfFiltered=$(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_F2/*_qfiltered_presence*.vcf | grep 'indels')
+  Stats=$(echo $VcfFiltered | sed 's/.vcf/_indels.stat/g')
+  perl $VcfTools/vcf-stats $VcfFiltered > $Stats
+```
+Calculate the index for percentage of shared SNP alleles between the individuals.
+
+```bash
+Isolate="F2"
+  for Vcf in $(ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_F2/*_qfiltered_presence*.vcf | grep -v 'indels'); do
+      ProgDir=~/git_repos/scripts/popgen/snp
+      python2.7 $ProgDir/similarity_percentage.py $Vcf
+  done
+```
+Annotate VCF files
+
+```bash
+Organism="Calbicans"
+Isolate="SC5314"
+Strain="F2"
+DbName="Calbicans" 
+CurDir=/home/sv264
+cd $CurDir
+  for Vcf in $(ls ls analysis/popgen/SNP_calling/c.albicans/SC5314/vs_${Strain}/*_qfiltered_presence.recode.vcf | grep -v 'indels'); do
+    echo $Vcf
+    filename=$(basename "$Vcf")
+    Prefix=${filename%.vcf}
+    OutDir=$(dirname $Vcf)
+    SnpEff=/home/sv264/local/bin/snpEff
+    java -Xmx4g -jar $SnpEff/snpEff.jar -v -ud 0 ${DbName} $Vcf > $OutDir/"$Prefix"_annotated.vcf
+    mv snpEff_genes.txt $OutDir/snpEff_genes_"$Prefix".txt
+    mv snpEff_summary.html $OutDir/snpEff_summary_"$Prefix".html
+    # mv 414_v2_contigs_unmasked_filtered* $OutDir/.
+    #-
+    #Create subsamples of SNPs containing those in a given category
+    #-
+    #genic (includes 5', 3' UTRs)
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant') || (ANN[0].EFFECT has 'synonymous_variant') || (ANN[0].EFFECT has 'intron_variant') || (ANN[*].EFFECT has 'splice_region_variant') || (ANN[*].EFFECT has '5_prime_UTR_variant') || (ANN[*].EFFECT has '3_prime_UTR_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_gene.vcf
+    #coding
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant') || (ANN[0].EFFECT has 'synonymous_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_coding.vcf
+    #non-synonymous
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'missense_variant') || (ANN[0].EFFECT has 'nonsense_variant') || (ANN[0].EFFECT has 'frameshift_variant') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'disruptive_inframe_deletion') || (ANN[0].EFFECT has 'disruptive_inframe_insertion') || (ANN[0].EFFECT has 'exon_loss_variant') || (ANN[0].EFFECT has 'splice_donor_variant') || (ANN[0].EFFECT has 'splice_acceptor_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_nonsyn.vcf
+    #synonymous
+    java -jar $SnpEff/SnpSift.jar filter "(ANN[0].EFFECT has 'synonymous_variant')" $OutDir/"$Prefix"_annotated.vcf > $OutDir/"$Prefix"_syn.vcf
+    #Four-fold degenrate sites (output file suffix: 4fd)
+    ProgDir=/home/sv264/local/bin/popgen/summary_stats
+    python $ProgDir/parse_snpeff_synonymous.py $OutDir/"$Prefix"_syn.vcf
+    AllSnps=$(cat $OutDir/"$Prefix"_annotated.vcf | grep -v '#' | wc -l)
+    GeneSnps=$(cat $OutDir/"$Prefix"_gene.vcf | grep -v '#' | wc -l)
+    CdsSnps=$(cat $OutDir/"$Prefix"_coding.vcf | grep -v '#' | wc -l)
+    NonsynSnps=$(cat $OutDir/"$Prefix"_nonsyn.vcf | grep -v '#' | wc -l)
+    SynSnps=$(cat $OutDir/"$Prefix"_syn.vcf | grep -v '#' | wc -l)
+    printf "$filename\t$AllSnps\t$GeneSnps\t$CdsSnps\t$NonsynSnps\t$SynSnps\n"
+done
+```
+```bash
+bwagatk_F2_qfiltered_presence.recode.vcf        76679   36323   35827   13227   22600
+
+Warnings detected:
+WARNING_TRANSCRIPT_INCOMPLETE   118
+WARNING_TRANSCRIPT_MULTIPLE_STOP_CODONS 295
+WARNING_TRANSCRIPT_NO_START_CODON       55
+WARNING_TRANSCRIPT_NO_STOP_CODON        207
+```
+
 
 
 
