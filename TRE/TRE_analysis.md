@@ -85,6 +85,7 @@ cp $Gff $SnpEff/data/${DbName}/genes.gff
 #Build database using GFF3 annotation
 java -jar $SnpEff/snpEff.jar build -gff3 -v ${DbName}
 ```
+This database of Candida albicans has both A and B genomes. 
 
 3.2 SNP Calling of TRE strains.
 
