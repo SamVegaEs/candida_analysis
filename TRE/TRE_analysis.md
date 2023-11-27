@@ -92,13 +92,13 @@ Done as: AB55 vs C3, C5 and F2.
 
 First all A22_A and then all A22_B
 
-3.2.1 Run bwa from scripts. 
+3.2.1 Run bwa from scripts. Modify them within the script.
 
 3.2.2 Run samtools from scripts. Modify them within the script.
 
-3.2.3 Run gatk from scripts. 
+3.2.3 Run gatk from scripts. Modify them within the script.
 
-3.2.4 Run picard from scripts.
+3.2.4 Run picard from scripts. Modify them within the script.
 
 3.3 SNPs filtering
 
