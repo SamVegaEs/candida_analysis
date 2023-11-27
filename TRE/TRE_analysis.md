@@ -87,21 +87,48 @@ java -jar $SnpEff/snpEff.jar build -gff3 -v ${DbName}
 ```
 This database of Candida albicans has both A and B genomes. 
 
-3.2 SNP Calling of TRE strains.
+3.2 Prepare the indexed genomes required for GATK. If not present the program will run but not generate the .vcf files.
+
+Prepare genome reference indexes required by GATK if needed:
+
+For SC5314_A: 
+
+```bash
+for Reference in $(ls assembly/misc_publications/c.albicans/A22_Chromosomes_29.fasta); do
+OutName=$(echo $Reference | sed 's/.fasta/.dict/g')
+OutDir=$(dirname $Reference)
+ProgDir=~/local/bin/picard-2.27.3
+java -jar $ProgDir/picard.jar CreateSequenceDictionary R=$Reference O=$OutName
+samtools faidx $Reference
+done
+```
+For SC5314_B:
+
+```bash
+for Reference in $(ls assembly/misc_publications/c.albicans/C_albicans_A22/C_albicans_A22_B.fa); do
+OutName=$(echo $Reference | sed 's/.fa/.dict/g')
+OutDir=$(dirname $Reference)
+ProgDir=~/local/bin/picard-2.27.3
+java -jar $ProgDir/picard.jar CreateSequenceDictionary R=$Reference O=$OutName
+samtools faidx $Reference
+done
+```
+
+3.3 SNP Calling of TRE strains.
 
 Done as: AB55 vs C3, C5 and F2. 
 
 First all A22_A and then all A22_B
 
-3.2.1 Run bwa from scripts. Modify them within the script.
+3.3.1 Run bwa from scripts. Modify them within the script.
 
-3.2.2 Run samtools from scripts. Modify them within the script.
+3.3.2 Run samtools from scripts. Modify them within the script.
 
-3.2.3 Run gatk from scripts. Modify them within the script.
+3.3.3 Run gatk from scripts. Modify them within the script.
 
-3.2.4 Run picard from scripts. Modify them within the script.
+3.3.4 Run picard from scripts. Modify them within the script.
 
-3.3 SNPs filtering
+3.4 SNPs filtering
 
 Run with the script in sbtacth_run. After vcf is generated filter SNPs:
 
