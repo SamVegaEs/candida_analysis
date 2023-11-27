@@ -17,7 +17,9 @@ sbatch $ProgDir/sub_nucmer_slurm.sh $Reference $Query $Prefix $OutDir
 done
 ```
 
-# 2. Coverage of Nanopore reads over Assembly. For the alignment of ONT reads versus Nanopore assembly use the program minimap:
+# 2. Coverage of Nanopore reads over Assembly. 
+
+For the alignment of ONT reads versus Nanopore assembly use the program minimap:
 
 ```bash
 for Assembly in $(ls niab_assemblies/c.albicans/UoK_July2023/assemblies/*/*.fasta); do
