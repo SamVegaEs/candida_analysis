@@ -2,24 +2,32 @@ DATA EXTRACTION AND QC FROM NOVOGENE.
 
 1. Extract data
 
+```bash
 tar -xvf X204SC23101273-Z01-F001.tar
+```
 
 2. Decompress data
-   
+
+```   
 gzip -d *.gz
+```
 
 3. Check Data integrity: 
-
+```
 md5sum -c MD5.txt
+```
 
 4. Trim reads with trimgalore!
 
+```bash
 trim_galore --paired *_1.fq *_2.fq
-
+```
 
 5. QC with fastqc
-   
+
+```bash
 fastqc *_val_*.fq
+```
 
 6. Reads can then be re-compressed. Bowtie can use .gz files so trimmed reads can also be zipped. 
 
