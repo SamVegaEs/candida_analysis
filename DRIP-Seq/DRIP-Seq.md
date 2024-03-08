@@ -43,10 +43,11 @@ First one is good to learn and to follow programs for pipeline and see what to d
 
 1. Align reads to reference assembly (A22) with bowtie2 
 
-#Run with slurm bash code. Modify the bowtie file accordingly. To submit the job:
+Run with slurm bash code. Modify the bowtie file accordingly. To submit the job:
 
+```bash
 sbatch ~/git_repos/tools/seq_tools/genome_alignment/bowtie/bowtie2.sh
-
+```
 Running options: 
 
 ```bash
@@ -57,15 +58,16 @@ example:
 ```bash
 bowtie2 -x ~/assembly/misc_publications/c.albicans/A22_Chromosomes_29 -1 ~/raw_dna/novogene/r_loops/batch_2/X204SC23101275-Z01-F001/01.RawData/C55_1/*_val_1.fq.gz -2 ~/raw_dna/novogene/r_loops/batch_2/X204SC23101275-Z01-F001/01.RawData/C55_1/*_val_2.fq.gz -S ~/analysis/genome_alignment/bowtie2/chip_seq/r_loops/rep2/ab55/ab55_c_albicans.sam 
 ```
-#bowtie gives the results in sam format. Next step is transforming from sam to bam. 
-
-Copy the output file generated with the alignment rates for each sample. Needed later on for spike in normalization. 
+Bowtie gives the results in sam format. Next step is transforming from sam to bam. 
+IMPORTANT: Copy the output file generated with the alignment rates for each sample. Needed later on for spike in normalization. 
 
 2. sam to bam
 
-#Run the program with run_samtools_chip code the folder where the original sams are. Modify accordingly.
+Run the program with run_samtools_chip code the folder where the original sams are. Modify accordingly.
 
+```bash
 sbatch ~/git_repos/scripts/sbatch_scripts/run_samtools_chip.sh
+```
 
 Running options:
 
@@ -83,11 +85,14 @@ samtools index -b ~/analysis/genome_alignment/bowtie2/chip_seq/r_loops/rep4/ab55
 
 3. Remove duplicated reads
   
-This can be done with different programs:
+This can be done with different programs: Sambamba or Macs2.
+Followed the one of tutorial 2 to keep the same pipeline than spike in correction. Also the output generated is .bed, which takes less memory: https://github.com/macs3-project/MACS/issues/356
 
 Tutorial one uses sambamba: 
 
+```bash
 sbatch ~/git_repos/scripts/sbatch_scripts/run_sambamba_chip.sh
+```
 
 Running options:
 
@@ -106,9 +111,9 @@ sambamba view -h -t 2 -f bam \
 
 Tutorial two uses macs2: 
 
-Followed the one of tutorial 2 to keep the same pipeline than spike in correction. Also the output generated is .bed, which takes less memory: https://github.com/macs3-project/MACS/issues/356
-
+```bash
 sbatch ~/git_repos/scripts/tools/seq_tools/macs2/macs2_filterdup.sh
+```
 
 Running options
 
@@ -125,7 +130,9 @@ macs2 filterdup -f BAMPE -i ~/analysis/genome_alignment/bowtie2/chip_seq/r_loops
 
 The program can be run in default options but it will not correct the spike-in, to do so it needs to be run in different steps. All the steps are summarised in the github tutorial
 
+```bash
 sbatch ~/git_repos/scripts/tools/seq_tools/macs2/macs2_covertracks.sh
+```
 
 #Step3: Extend ChIP sample to get ChIP coverage track
 
@@ -148,7 +155,9 @@ INPUT: wc -l INPUT_sorted_filterdup.bed: 4578/4578= 1
 #-l is same -d as STEP2: 147
 #-g: Maximum gap between stronger peaks, better to set it as the tag size. DEFAULT: 30
 
+Example:
 
+```bash
 Step3: macs2 pileup -f BEDPE -B -i ALIGNMENT_sorted_filterdup.bed -o sampleA_sorted_filterdup.pileup.bdg
 Step4: macs2 pileup -f BEDPE -i ALIGNMENT_sorted_filterdup.bed -B --extsize 73 -o INPUT_d_bg.bdg
        macs2 pileup -f BEDPE -i ALIGNMENT_sorted_filterdup.bed -B --extsize 500 -o INPUT_1k_bg.bdg
@@ -163,7 +172,7 @@ Step6: macs2 bdgcmp -t SampleA_sorted_filterdup_scale.pileup.bdg -c INPUT_local_
        macs2 bdgcmp -t SampleA_sorted_filterdup_scale.pileup.bdg -c INPUT_local_lambda.bdg -m ppois -o SampleA_pvalue.bdg
 Step7: macs2 bdgbroadcall -i SampleA_qvalue.bdg -c 1.301 -l 147 -g 30 -o SampleA_qval_peaks.bed
        macs2 bdgbroadcall -i SampleA_pvalue.bdg -c 2 -l 147 -g 30 -o SampleA_pval_peaks.bed
-
-
+```
+PEAKS CALLING: DONE
 
 
