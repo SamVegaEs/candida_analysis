@@ -3,7 +3,7 @@ DATA EXTRACTION AND QC FROM NOVOGENE.
 1. Extract data
 
 ```bash
-tar -xvf X204SC23101273-Z01-F001.tar
+tar -xvf *.tar
 ```
 
 2. Decompress data
