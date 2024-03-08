@@ -1,4 +1,6 @@
-# DATA EXTRACTION AND QC FROM NOVOGENE. 
+# DRIP-SEQ ANALYSIS
+
+# Data extraction and QC 
 
 1. Extract data
 
@@ -31,8 +33,7 @@ fastqc *_val_*.fq
 
 6. Reads can then be re-compressed. Bowtie can use .gz files so trimmed reads can also be zipped. 
 
-
-# CHIP-Seq DATA ANALYSIS.
+# PEAK CALLING
 
 For this analysis I followed to different tutorials:
 
