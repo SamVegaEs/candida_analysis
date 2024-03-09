@@ -86,8 +86,7 @@ samtools index -b ~/analysis/genome_alignment/bowtie2/chip_seq/r_loops/rep4/ab55
 
 3. Remove duplicated reads
   
-This can be done with different programs: Sambamba or Macs2.
-Followed the one of tutorial 2 to keep the same pipeline than spike in correction. Also the output generated is .bed, which takes less memory: https://github.com/macs3-project/MACS/issues/356
+This can be done with different programs: Sambamba or Macs2. I used Macs2, following the one of tutorial 2 to keep the same pipeline than spike in correction. Also the output generated is .bed, which takes less memory: https://github.com/macs3-project/MACS/issues/356
 
 Tutorial one uses sambamba: 
 
